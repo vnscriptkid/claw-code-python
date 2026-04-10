@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Step 2: Tool Definitions + The Agent Loop.
+"""Step 3: File System Tools (Read, Write, Edit).
 
-Adds the calculator tool and the core run_turn() agentic loop.
-When you say "what's 42 * 17?", the LLM calls the calculator tool,
-gets the result, and responds with the final answer.
+Adds read_file, write_file, and edit_file tools to the agent.
+The agent can now read, create, and modify files on disk.
 
 Usage:
     python -m claw_code_python.main
@@ -28,12 +27,18 @@ from .agent_loop import run_turn  # noqa: E402
 from .llm_client import LLMClient, _estimate_cost  # noqa: E402
 from .models import Message  # noqa: E402
 from .tool_registry import ToolRegistry  # noqa: E402
+from .session import Session  # noqa: E402
 from .tools.calculator import CalculatorTool  # noqa: E402
+from .tools.read_file import ReadFileTool  # noqa: E402
+from .tools.write_file import WriteFileTool  # noqa: E402
+from .tools.edit_file import EditFileTool  # noqa: E402
 
 
 SYSTEM_PROMPT = (
     "You are a helpful coding assistant. "
-    "When asked to compute arithmetic, use the calculator tool."
+    "You can read, write, and edit files on disk using the provided tools. "
+    "When asked to compute arithmetic, use the calculator tool. "
+    "When working with files, always use the file tools rather than guessing content."
 )
 _CYAN = "\033[36m"
 _GREEN = "\033[32m"
@@ -43,9 +48,11 @@ _RESET = "\033[0m"
 _BOLD = "\033[1m"
 
 
-def _print_banner() -> None:
-    print(f"{_BOLD}claw-code-python{_RESET}  (step 2 — tool definitions + agent loop)")
+def _print_banner(session_id: str) -> None:
+    print(f"{_BOLD}claw-code-python{_RESET}  (step 3 — file system tools)")
     print(f'{_DIM}Type "exit" or press Ctrl-D to quit.{_RESET}')
+    print(f"{_DIM}Session: {session_id}{_RESET}")
+    print(f"{_DIM}Viewer:  python -m claw_code_python.viewer --serve{_RESET}")
     print()
 
 
@@ -58,8 +65,10 @@ def _print_usage(model: str, input_tokens: int, output_tokens: int) -> None:
 
 
 def run() -> None:
-    _print_banner()
     model = os.environ.get("CLAW_MODEL", "claude-haiku-4-5")
+    session = Session(model=model)
+
+    _print_banner(session.session_id)
 
     try:
         client = LLMClient(model=model, system=SYSTEM_PROMPT)
@@ -69,6 +78,9 @@ def run() -> None:
 
     registry = ToolRegistry()
     registry.register(CalculatorTool())
+    registry.register(ReadFileTool())
+    registry.register(WriteFileTool())
+    registry.register(EditFileTool())
 
     conversation: list[Message] = []
 
@@ -94,6 +106,22 @@ def run() -> None:
                 if conversation and conversation[-1].role == "user":
                     conversation.pop()
                 continue
+
+            # Persist this turn to disk.
+            session.save_turn(
+                messages=conversation,
+                tool_calls=[
+                    {
+                        "name": tc.name,
+                        "input": tc.input,
+                        "output": tc.output,
+                        "is_error": tc.is_error,
+                    }
+                    for tc in result.tool_calls
+                ],
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+            )
 
             # Show any tool calls that happened during this turn.
             for tc in result.tool_calls:

@@ -9,7 +9,8 @@ dependencies = [
 ]
 
 [project.scripts]
-claw = "claw_code_python.main:run"
+claw        = "claw_code_python.main:run"
+claw-viewer = "claw_code_python.viewer:main"
 
 [build-system]
 requires = ["hatchling"]
