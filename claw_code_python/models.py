@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
-from pydantic import BaseModel
+from typing import Annotated, Any, Literal, Union
+from pydantic import BaseModel, Field
 
 
 class TextBlock(BaseModel):
@@ -11,8 +11,27 @@ class TextBlock(BaseModel):
     text: str
 
 
-# Union of content block types (extended in later steps with tool_use / tool_result)
-ContentBlock = TextBlock
+class ToolUseBlock(BaseModel):
+    """Emitted by the assistant when it wants to call a tool."""
+    type: Literal["tool_use"] = "tool_use"
+    id: str
+    name: str
+    input: dict[str, Any]
+
+
+class ToolResultBlock(BaseModel):
+    """Sent by the user to return a tool's output to the assistant."""
+    type: Literal["tool_result"] = "tool_result"
+    tool_use_id: str
+    content: str
+    is_error: bool = False
+
+
+# Discriminated union -- Pydantic picks the right model from the "type" field.
+ContentBlock = Annotated[
+    Union[TextBlock, ToolUseBlock, ToolResultBlock],
+    Field(discriminator="type"),
+]
 
 
 class Message(BaseModel):

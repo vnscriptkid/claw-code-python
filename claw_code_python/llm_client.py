@@ -5,7 +5,15 @@ from __future__ import annotations
 import os
 import httpx
 
-from .models import Message, MessageResponse, TextBlock, TokenUsage
+from .models import (
+    ContentBlock,
+    Message,
+    MessageResponse,
+    TextBlock,
+    ToolResultBlock,
+    ToolUseBlock,
+    TokenUsage,
+)
 
 _API_URL = "https://api.anthropic.com/v1/messages"
 _DEFAULT_MODEL = "claude-haiku-4-5"
@@ -22,6 +30,25 @@ _COST_PER_MTok: dict[str, tuple[float, float]] = {
 def _estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     in_rate, out_rate = _COST_PER_MTok.get(model, (3.00, 15.00))
     return (input_tokens * in_rate + output_tokens * out_rate) / 1_000_000
+
+
+def _serialize_block(block: ContentBlock) -> dict:
+    """Convert a ContentBlock to the dict format expected by the Anthropic API."""
+    if isinstance(block, TextBlock):
+        return {"type": "text", "text": block.text}
+    if isinstance(block, ToolUseBlock):
+        return {"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}
+    if isinstance(block, ToolResultBlock):
+        d: dict = {
+            "type": "tool_result",
+            "tool_use_id": block.tool_use_id,
+            "content": block.content,
+        }
+        if block.is_error:
+            d["is_error"] = True
+        return d
+    # Fallback for any future block type added to the union
+    return block.model_dump()
 
 
 class LLMClient:
@@ -42,7 +69,11 @@ class LLMClient:
         self.system = system
         self._http = httpx.Client(timeout=120.0)
 
-    def send_message(self, messages: list[Message]) -> MessageResponse:
+    def send_message(
+        self,
+        messages: list[Message],
+        tools: list[dict] | None = None,
+    ) -> MessageResponse:
         """Send a list of messages to the API and return the response."""
         payload: dict = {
             "model": self.model,
@@ -50,13 +81,15 @@ class LLMClient:
             "messages": [
                 {
                     "role": m.role,
-                    "content": [b.model_dump() for b in m.content],
+                    "content": [_serialize_block(b) for b in m.content],
                 }
                 for m in messages
             ],
         }
         if self.system:
             payload["system"] = self.system
+        if tools:
+            payload["tools"] = tools
 
         resp = self._http.post(
             _API_URL,
@@ -79,9 +112,14 @@ class LLMClient:
             )
         data = resp.json()
 
-        content = [
-            TextBlock(text=b["text"]) for b in data["content"] if b["type"] == "text"
-        ]
+        content: list[ContentBlock] = []
+        for b in data["content"]:
+            if b["type"] == "text":
+                content.append(TextBlock(text=b["text"]))
+            elif b["type"] == "tool_use":
+                content.append(ToolUseBlock(id=b["id"], name=b["name"], input=b["input"]))
+            # other block types (e.g. thinking) are ignored for now
+
         usage = TokenUsage(
             input_tokens=data["usage"]["input_tokens"],
             output_tokens=data["usage"]["output_tokens"],

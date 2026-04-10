@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Step 1: Minimal LLM chat loop.
+"""Step 2: Tool Definitions + The Agent Loop.
+
+Adds the calculator tool and the core run_turn() agentic loop.
+When you say "what's 42 * 17?", the LLM calls the calculator tool,
+gets the result, and responds with the final answer.
 
 Usage:
     python -m claw_code_python.main
@@ -20,20 +24,27 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv()  # loads .env from cwd (or any parent directory)
 
+from .agent_loop import run_turn  # noqa: E402
 from .llm_client import LLMClient, _estimate_cost  # noqa: E402
 from .models import Message  # noqa: E402
+from .tool_registry import ToolRegistry  # noqa: E402
+from .tools.calculator import CalculatorTool  # noqa: E402
 
 
-SYSTEM_PROMPT = "You are a helpful coding assistant."
+SYSTEM_PROMPT = (
+    "You are a helpful coding assistant. "
+    "When asked to compute arithmetic, use the calculator tool."
+)
 _CYAN = "\033[36m"
 _GREEN = "\033[32m"
+_YELLOW = "\033[33m"
 _DIM = "\033[2m"
 _RESET = "\033[0m"
 _BOLD = "\033[1m"
 
 
 def _print_banner() -> None:
-    print(f"{_BOLD}claw-code-python{_RESET}  (step 1 — minimal chat loop)")
+    print(f"{_BOLD}claw-code-python{_RESET}  (step 2 — tool definitions + agent loop)")
     print(f'{_DIM}Type "exit" or press Ctrl-D to quit.{_RESET}')
     print()
 
@@ -56,6 +67,9 @@ def run() -> None:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
+    registry = ToolRegistry()
+    registry.register(CalculatorTool())
+
     conversation: list[Message] = []
 
     with client:
@@ -72,28 +86,31 @@ def run() -> None:
                 print("Bye!")
                 break
 
-            conversation.append(Message.user(user_input))
-
             try:
-                response = client.send_message(conversation)
+                result = run_turn(user_input, conversation, client, registry)
             except Exception as e:  # noqa: BLE001
                 print(f"API error: {e}", file=sys.stderr)
-                # Remove the failed user message so the conversation stays clean
-                conversation.pop()
+                # Remove the failed user message so conversation stays clean.
+                if conversation and conversation[-1].role == "user":
+                    conversation.pop()
                 continue
 
-            assistant_text = response.text()
-            conversation.append(Message.assistant(assistant_text))
+            # Show any tool calls that happened during this turn.
+            for tc in result.tool_calls:
+                inp_str = ", ".join(f"{k}={v!r}" for k, v in tc.input.items())
+                status = "error" if tc.is_error else "ok"
+                print(
+                    f"{_YELLOW}[tool:{_RESET} {tc.name}({inp_str})"
+                    f"{_YELLOW} →{_RESET} {tc.output!r}"
+                    f" {_DIM}({status}){_RESET}{_YELLOW}]{_RESET}"
+                )
 
-            print(f"{_CYAN}claude>{_RESET} {assistant_text}")
+            print(f"{_CYAN}claude>{_RESET} {result.text}")
             print()
-            _print_usage(
-                response.model,
-                response.usage.input_tokens,
-                response.usage.output_tokens,
-            )
+            _print_usage(model, result.input_tokens, result.output_tokens)
             print()
 
 
 if __name__ == "__main__":
     run()
+
