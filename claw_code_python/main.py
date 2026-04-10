@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Step 3: File System Tools (Read, Write, Edit).
+"""Step 4: Shell Execution Tool (Bash).
 
-Adds read_file, write_file, and edit_file tools to the agent.
-The agent can now read, create, and modify files on disk.
+Adds the bash tool on top of the file system tools from Step 3.
+The agent can now run shell commands, install packages, and execute tests.
 
 Usage:
     python -m claw_code_python.main
@@ -32,13 +32,16 @@ from .tools.calculator import CalculatorTool  # noqa: E402
 from .tools.read_file import ReadFileTool  # noqa: E402
 from .tools.write_file import WriteFileTool  # noqa: E402
 from .tools.edit_file import EditFileTool  # noqa: E402
+from .tools.bash import BashTool  # noqa: E402
 
 
 SYSTEM_PROMPT = (
     "You are a helpful coding assistant. "
-    "You can read, write, and edit files on disk using the provided tools. "
+    "You can read, write, and edit files on disk, and run shell commands. "
     "When asked to compute arithmetic, use the calculator tool. "
-    "When working with files, always use the file tools rather than guessing content."
+    "When working with files, always use the file tools rather than guessing content. "
+    "When you need to run commands (tests, installs, git, etc.), use the bash tool. "
+    "Keep bash commands focused and avoid interactive prompts."
 )
 _CYAN = "\033[36m"
 _GREEN = "\033[32m"
@@ -49,7 +52,7 @@ _BOLD = "\033[1m"
 
 
 def _print_banner(session_id: str) -> None:
-    print(f"{_BOLD}claw-code-python{_RESET}  (step 3 — file system tools)")
+    print(f"{_BOLD}claw-code-python{_RESET}  (step 4 — shell execution tool)")
     print(f'{_DIM}Type "exit" or press Ctrl-D to quit.{_RESET}')
     print(f"{_DIM}Session: {session_id}{_RESET}")
     print(f"{_DIM}Viewer:  python -m claw_code_python.viewer --serve{_RESET}")
@@ -81,6 +84,7 @@ def run() -> None:
     registry.register(ReadFileTool())
     registry.register(WriteFileTool())
     registry.register(EditFileTool())
+    registry.register(BashTool())
 
     conversation: list[Message] = []
 
