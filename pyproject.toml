@@ -19,5 +19,10 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "pre-commit>=4.0.0",
+    "pytest>=8.0.0",
     "ruff>=0.15.10",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

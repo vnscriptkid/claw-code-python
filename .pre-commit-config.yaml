@@ -19,3 +19,13 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: debug-statements   # catches leftover breakpoint() / pdb calls
+
+  # Run tests on push (slower; only fires on git push, not git commit)
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
