@@ -58,12 +58,14 @@ class Session:
 
     def _ensure_meta(self) -> None:
         if not self._wrote_meta:
-            self._append({
-                "type": "meta",
-                "session_id": self.session_id,
-                "created_at": self.created_at,
-                "model": self.model,
-            })
+            self._append(
+                {
+                    "type": "meta",
+                    "session_id": self.session_id,
+                    "created_at": self.created_at,
+                    "model": self.model,
+                }
+            )
             self._wrote_meta = True
 
     def save_turn(
@@ -76,15 +78,17 @@ class Session:
         """Append one completed turn to the session file."""
         self._ensure_meta()
         self._turn_seq += 1
-        self._append({
-            "type": "turn",
-            "seq": self._turn_seq,
-            "timestamp": _now(),
-            "messages": [m.model_dump() for m in messages],
-            "tool_calls": tool_calls,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-        })
+        self._append(
+            {
+                "type": "turn",
+                "seq": self._turn_seq,
+                "timestamp": _now(),
+                "messages": [m.model_dump() for m in messages],
+                "tool_calls": tool_calls,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+            }
+        )
 
     @property
     def path(self) -> Path:

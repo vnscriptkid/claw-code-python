@@ -42,7 +42,9 @@ def _safe_eval(node: ast.expr) -> float | int:
     if isinstance(node, ast.UnaryOp):
         op_type = type(node.op)
         if op_type not in _UNARY_OPS:
-            raise ValueError(f"Unary operator '{type(node.op).__name__}' is not allowed")
+            raise ValueError(
+                f"Unary operator '{type(node.op).__name__}' is not allowed"
+            )
         return _UNARY_OPS[op_type](_safe_eval(node.operand))
     raise ValueError(f"Unsupported expression node: {type(node).__name__}")
 

@@ -196,9 +196,7 @@ class GrepSearchTool(Tool):
         search_path: str | None = tool_input.get("path")
         glob_filter: str | None = tool_input.get("glob")
         output_mode: str = tool_input.get("output_mode") or "files_with_matches"
-        context: int = int(
-            tool_input.get("context") or tool_input.get("-C") or 0
-        )
+        context: int = int(tool_input.get("context") or tool_input.get("-C") or 0)
         before: int = int(tool_input.get("-B") or context)
         after: int = int(tool_input.get("-A") or context)
         line_numbers: bool = tool_input.get("-n", True) is not False
@@ -207,7 +205,9 @@ class GrepSearchTool(Tool):
         )
         file_type: str | None = tool_input.get("type")
         head_limit: int | None = (
-            int(tool_input["head_limit"]) if tool_input.get("head_limit") is not None else None
+            int(tool_input["head_limit"])
+            if tool_input.get("head_limit") is not None
+            else None
         )
         offset: int | None = (
             int(tool_input["offset"]) if tool_input.get("offset") is not None else None
@@ -270,10 +270,14 @@ class GrepSearchTool(Tool):
                         content_lines.append(f"{prefix}{line}")
 
         # Apply pagination.
-        filenames, applied_limit, applied_offset = _apply_limit(filenames, head_limit, offset)
+        filenames, applied_limit, applied_offset = _apply_limit(
+            filenames, head_limit, offset
+        )
 
         if output_mode == "content":
-            content_lines, c_limit, c_offset = _apply_limit(content_lines, head_limit, offset)
+            content_lines, c_limit, c_offset = _apply_limit(
+                content_lines, head_limit, offset
+            )
             result: dict[str, Any] = {
                 "mode": output_mode,
                 "numFiles": len(filenames),

@@ -12,7 +12,6 @@ Key behaviour:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -115,9 +114,5 @@ class ReadFileTool(Tool):
             f"{i + start + 1}\t{line}" for i, line in enumerate(selected)
         )
 
-        header = (
-            f"File: {path}\n"
-            f"Lines {start + 1}-{end} of {total_lines}\n"
-            f"---\n"
-        )
+        header = f"File: {path}\nLines {start + 1}-{end} of {total_lines}\n---\n"
         return header + numbered

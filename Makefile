@@ -8,6 +8,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "  install          Install dependencies (creates .venv via uv)"
+	@echo "  hooks            Install pre-commit hooks into .git/hooks"
 	@echo "  run              Start the chat REPL"
 	@echo "  viewer           Start the session debug viewer  (http://127.0.0.1:$(VIEWER_PORT)/)"
 	@echo "  viewer PORT=8080 Start viewer on a custom port"
@@ -22,6 +23,9 @@ help:
 
 install:
 	uv sync
+
+hooks:
+	uv run pre-commit install
 
 run:
 	uv run claw

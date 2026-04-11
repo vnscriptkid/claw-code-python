@@ -89,10 +89,7 @@ class BashTool(Tool):
                 timeout=timeout_secs,
             )
         except subprocess.TimeoutExpired:
-            return (
-                f"Command timed out after {timeout_ms} ms.\n"
-                "[interrupted]"
-            )
+            return f"Command timed out after {timeout_ms} ms.\n[interrupted]"
         except OSError as exc:
             return f"Failed to start command: {exc}"
 

@@ -37,7 +37,12 @@ def _serialize_block(block: ContentBlock) -> dict:
     if isinstance(block, TextBlock):
         return {"type": "text", "text": block.text}
     if isinstance(block, ToolUseBlock):
-        return {"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}
+        return {
+            "type": "tool_use",
+            "id": block.id,
+            "name": block.name,
+            "input": block.input,
+        }
     if isinstance(block, ToolResultBlock):
         d: dict = {
             "type": "tool_result",
@@ -117,7 +122,9 @@ class LLMClient:
             if b["type"] == "text":
                 content.append(TextBlock(text=b["text"]))
             elif b["type"] == "tool_use":
-                content.append(ToolUseBlock(id=b["id"], name=b["name"], input=b["input"]))
+                content.append(
+                    ToolUseBlock(id=b["id"], name=b["name"], input=b["input"])
+                )
             # other block types (e.g. thinking) are ignored for now
 
         usage = TokenUsage(

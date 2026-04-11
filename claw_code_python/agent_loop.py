@@ -40,7 +40,7 @@ class ToolCallRecord:
 class TurnResult:
     """Outcome of a single user turn (mirrors TurnSummary in Rust)."""
 
-    text: str                          # final assistant text response
+    text: str  # final assistant text response
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
     iterations: int = 0
     input_tokens: int = 0
@@ -100,17 +100,21 @@ def run_turn(
         result_blocks: list[ToolResultBlock] = []
         for tu in pending:
             output, is_error = registry.execute(tu.name, tu.input)
-            tool_calls.append(ToolCallRecord(
-                name=tu.name,
-                input=tu.input,
-                output=output,
-                is_error=is_error,
-            ))
-            result_blocks.append(ToolResultBlock(
-                tool_use_id=tu.id,
-                content=output,
-                is_error=is_error,
-            ))
+            tool_calls.append(
+                ToolCallRecord(
+                    name=tu.name,
+                    input=tu.input,
+                    output=output,
+                    is_error=is_error,
+                )
+            )
+            result_blocks.append(
+                ToolResultBlock(
+                    tool_use_id=tu.id,
+                    content=output,
+                    is_error=is_error,
+                )
+            )
 
         # Feed all tool results back as a single user message.
         messages.append(Message(role="user", content=result_blocks))  # type: ignore[arg-type]

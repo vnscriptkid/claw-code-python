@@ -13,6 +13,7 @@ class TextBlock(BaseModel):
 
 class ToolUseBlock(BaseModel):
     """Emitted by the assistant when it wants to call a tool."""
+
     type: Literal["tool_use"] = "tool_use"
     id: str
     name: str
@@ -21,6 +22,7 @@ class ToolUseBlock(BaseModel):
 
 class ToolResultBlock(BaseModel):
     """Sent by the user to return a tool's output to the assistant."""
+
     type: Literal["tool_result"] = "tool_result"
     tool_use_id: str
     content: str

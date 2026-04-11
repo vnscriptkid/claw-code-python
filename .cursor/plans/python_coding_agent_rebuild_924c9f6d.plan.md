@@ -183,7 +183,7 @@ flowchart TD
   BashTool -->|"command, timeout, cwd"| Subprocess["subprocess.run()"]
   Subprocess -->|"stdout + stderr"| BashTool
   BashTool -->|"formatted output"| AgentLoop
-  
+
   subgraph safety ["Safety Layer"]
     BashTool -->|"timeout exceeded"| Kill["Kill Process"]
     BashTool -->|"output too large"| Truncate["Truncate Output"]
@@ -261,7 +261,7 @@ flowchart TD
   InstrFiles --> Builder
   EnvCtx --> Builder
   Builder -->|"assembled system prompt"| AgentLoop["Agent Loop"]
-  
+
   subgraph promptStructure ["Prompt Structure"]
     Base["Base Instructions"]
     Tools["Tool Descriptions"]
@@ -298,11 +298,11 @@ flowchart TD
 flowchart TD
   AgentLoop["Agent Loop"] -->|"after each turn"| Persist["Session.save()"]
   Persist -->|"append JSONL"| Disk["~/.claw/sessions/uuid.jsonl"]
-  
+
   CLI["CLI Startup"] -->|"--resume id"| Load["Session.load()"]
   CLI -->|"--list"| List["Session.list_all()"]
   Load -->|"restore messages"| AgentLoop
-  
+
   subgraph sessionData ["Session Data"]
     Messages["messages array"]
     Meta["session_id, created_at, updated_at"]
@@ -341,7 +341,7 @@ flowchart TD
   Prompt -->|"y/n"| Decision{"User Decision"}
   Decision -->|"allow"| Allow
   Decision -->|"deny"| DenyMsg["Return error to LLM"]
-  
+
   subgraph modes ["Permission Modes"]
     RO["ReadOnly: read_file, glob, grep"]
     WW["WorkspaceWrite: + write_file, edit_file"]
@@ -415,7 +415,7 @@ flowchart TD
   Parser -->|"content_block_delta"| Stream["Print token to terminal"]
   Parser -->|"content_block_start (tool_use)"| ToolUI["Show tool call panel"]
   Parser -->|"message_stop"| Complete["Finalize turn"]
-  
+
   subgraph terminalUI ["Terminal UI (Rich)"]
     Stream --> Markdown["Markdown renderer"]
     ToolUI --> Spinner["Spinner + tool name"]

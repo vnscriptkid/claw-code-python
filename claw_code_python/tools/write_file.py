@@ -76,5 +76,7 @@ class WriteFileTool(Tool):
         path.write_text(content, encoding="utf-8")
 
         action = "Updated" if existed else "Created"
-        line_count = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
+        line_count = content.count("\n") + (
+            1 if content and not content.endswith("\n") else 0
+        )
         return f"{action} {path} ({line_count} lines, {len(content)} bytes)"

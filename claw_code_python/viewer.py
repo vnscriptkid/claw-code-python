@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
 from typing import Any
 
 from .session import Session, LoadedSession
@@ -149,6 +148,7 @@ pre.json {
 
 # ── HTML helpers ───────────────────────────────────────────────────────────────
 
+
 def _html(title: str, body: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -163,10 +163,12 @@ def _html(title: str, body: str) -> str:
 
 
 def _esc(s: str) -> str:
-    return (s.replace("&", "&amp;")
-             .replace("<", "&lt;")
-             .replace(">", "&gt;")
-             .replace('"', "&quot;"))
+    return (
+        s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
 
 
 def _render_block(block: dict[str, Any]) -> str:
@@ -185,24 +187,24 @@ def _render_block(block: dict[str, Any]) -> str:
             f'<div class="tool-use-header">'
             f'<span class="tool-use-name">⚙ {_esc(block.get("name", "?"))}</span>'
             f'<span class="tool-use-id">id: {_esc(block.get("id", ""))}</span>'
-            f'</div>'
+            f"</div>"
             f'<pre class="json">{_esc(inp_json)}</pre>'
-            f'</div>'
+            f"</div>"
         )
 
     if t == "tool_result":
         is_error = block.get("is_error", False)
-        err_cls  = " is-error" if is_error else ""
-        label    = "✗ ERROR" if is_error else "✓ RESULT"
-        content  = str(block.get("content", ""))
+        err_cls = " is-error" if is_error else ""
+        label = "✗ ERROR" if is_error else "✓ RESULT"
+        content = str(block.get("content", ""))
         return (
             f'<div class="tool-result{err_cls}">'
             f'<div class="tool-result-header">'
             f'<span class="tool-result-label">{label}</span>'
             f'<span class="tool-result-ref">← {_esc(block.get("tool_use_id", ""))}</span>'
-            f'</div>'
+            f"</div>"
             f'<div class="tool-result-content">{_esc(content)}</div>'
-            f'</div>'
+            f"</div>"
         )
 
     # Fallback: raw JSON
@@ -211,15 +213,12 @@ def _render_block(block: dict[str, Any]) -> str:
 
 def _render_message(msg: dict[str, Any]) -> str:
     role = msg.get("role", "?")
-    css  = "msg-user" if role == "user" else "msg-assistant"
+    css = "msg-user" if role == "user" else "msg-assistant"
     blocks_html = "".join(_render_block(b) for b in msg.get("content", []))
     if not blocks_html.strip():
         return ""
     return (
-        f'<div class="msg {css}">'
-        f'<div class="msg-role">{role}</div>'
-        f'{blocks_html}'
-        f'</div>'
+        f'<div class="msg {css}"><div class="msg-role">{role}</div>{blocks_html}</div>'
     )
 
 
@@ -229,7 +228,7 @@ def _render_tool_strip(tool_calls: list[dict[str, Any]]) -> str:
     pills = []
     for tc in tool_calls:
         err_cls = " err" if tc.get("is_error") else ""
-        icon    = "✗" if tc.get("is_error") else "⚙"
+        icon = "✗" if tc.get("is_error") else "⚙"
         pills.append(
             f'<span class="tool-pill{err_cls}">{icon} {_esc(tc.get("name", "?"))}</span>'
         )
@@ -237,6 +236,7 @@ def _render_tool_strip(tool_calls: list[dict[str, Any]]) -> str:
 
 
 # ── Page renderers ─────────────────────────────────────────────────────────────
+
 
 def render_session_list(sessions: list[dict[str, Any]]) -> str:
     if not sessions:
@@ -248,16 +248,16 @@ def render_session_list(sessions: list[dict[str, Any]]) -> str:
 
     cards = []
     for s in sessions:
-        sid     = s.get("session_id", "?")
-        model   = s.get("model", "?")
+        sid = s.get("session_id", "?")
+        model = s.get("model", "?")
         created = s.get("created_at", "")[:19].replace("T", " ") + " UTC"
         cards.append(
             f'<div class="session-card">'
             f'<div class="session-id"><a href="/{_esc(sid)}">{_esc(sid)}</a></div>'
             f'<div class="session-meta">'
-            f'model: <strong>{_esc(model)}</strong> &nbsp;·&nbsp; {_esc(created)}'
-            f'</div>'
-            f'</div>'
+            f"model: <strong>{_esc(model)}</strong> &nbsp;·&nbsp; {_esc(created)}"
+            f"</div>"
+            f"</div>"
         )
 
     body = (
@@ -269,39 +269,39 @@ def render_session_list(sessions: list[dict[str, Any]]) -> str:
 
 
 def render_session(ls: LoadedSession) -> str:
-    meta    = ls.meta
-    model   = meta.get("model", "?")
+    meta = ls.meta
+    model = meta.get("model", "?")
     created = meta.get("created_at", "")[:19].replace("T", " ") + " UTC"
 
     # Cumulative token totals
-    total_in  = sum(t.get("input_tokens", 0)  for t in ls.turns)
+    total_in = sum(t.get("input_tokens", 0) for t in ls.turns)
     total_out = sum(t.get("output_tokens", 0) for t in ls.turns)
 
     nav = (
         f'<div class="nav">'
         f'<a href="/">← all sessions</a>'
         f'<a href="/api/{_esc(ls.session_id)}">raw JSON</a>'
-        f'</div>'
+        f"</div>"
     )
 
     header = (
         f'<div class="session-header">'
-        f'<strong>Session:</strong> {_esc(ls.session_id)}<br>'
+        f"<strong>Session:</strong> {_esc(ls.session_id)}<br>"
         f'<span style="color:#8b949e;font-size:.78rem">'
-        f'model: {_esc(model)} &nbsp;·&nbsp; created: {_esc(created)}'
-        f' &nbsp;·&nbsp; {len(ls.turns)} turn(s)'
-        f' &nbsp;·&nbsp; '
+        f"model: {_esc(model)} &nbsp;·&nbsp; created: {_esc(created)}"
+        f" &nbsp;·&nbsp; {len(ls.turns)} turn(s)"
+        f" &nbsp;·&nbsp; "
         f'<span class="badge badge-in">{total_in} in</span>'
         f' <span class="badge badge-out">{total_out} out</span>'
-        f'</span>'
-        f'</div>'
+        f"</span>"
+        f"</div>"
     )
 
     turns_html = []
     for i, turn in enumerate(ls.turns):
-        seq  = turn.get("seq", "?")
-        ts   = turn.get("timestamp", "")[:19].replace("T", " ") + " UTC"
-        tin  = turn.get("input_tokens", 0)
+        seq = turn.get("seq", "?")
+        ts = turn.get("timestamp", "")[:19].replace("T", " ") + " UTC"
+        tin = turn.get("input_tokens", 0)
         tout = turn.get("output_tokens", 0)
         tool_calls = turn.get("tool_calls", [])
 
@@ -316,46 +316,49 @@ def render_session(ls: LoadedSession) -> str:
             if preview:
                 break
 
-        strip     = _render_tool_strip(tool_calls)
+        strip = _render_tool_strip(tool_calls)
         msgs_html = "".join(_render_message(m) for m in turn.get("messages", []))
 
         # First turn open by default, rest collapsed
         open_attr = " open" if i == 0 else ""
 
         summary = (
-            f'<summary>'
+            f"<summary>"
             f'<span class="turn-chevron">▶</span>'
             f'<span class="turn-seq">Turn {seq}</span>'
             f'<span class="turn-ts">{ts}</span>'
             f'<span class="badge badge-in">{tin} in</span>'
             f'<span class="badge badge-out">{tout} out</span>'
             f'<span class="turn-preview">{_esc(preview)}</span>'
-            f'</summary>'
+            f"</summary>"
         )
 
         turns_html.append(
             f'<div class="turn">'
             f'<details class="turn-details"{open_attr}>'
-            f'{summary}'
+            f"{summary}"
             f'<div class="turn-body">{strip}{msgs_html}</div>'
-            f'</details>'
-            f'</div>'
+            f"</details>"
+            f"</div>"
         )
 
     expand_controls = (
         '<div class="expand-controls">'
-        '<button onclick="document.querySelectorAll(\'details.turn-details\').forEach(d=>d.open=true)">'
-        'Expand all</button>'
-        '<button onclick="document.querySelectorAll(\'details.turn-details\').forEach(d=>d.open=false)">'
-        'Collapse all</button>'
-        '</div>'
+        "<button onclick=\"document.querySelectorAll('details.turn-details').forEach(d=>d.open=true)\">"
+        "Expand all</button>"
+        "<button onclick=\"document.querySelectorAll('details.turn-details').forEach(d=>d.open=false)\">"
+        "Collapse all</button>"
+        "</div>"
     )
 
-    body = nav + "<h1>Session detail</h1>" + header + expand_controls + "".join(turns_html)
+    body = (
+        nav + "<h1>Session detail</h1>" + header + expand_controls + "".join(turns_html)
+    )
     return _html(f"session {ls.session_id[:8]}", body)
 
 
 # ── HTTP server ────────────────────────────────────────────────────────────────
+
 
 class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:
@@ -374,16 +377,20 @@ class _Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0].rstrip("/") or "/"
 
         if path == "/":
-            self._send(200, "text/html; charset=utf-8",
-                       render_session_list(Session.list_all()))
+            self._send(
+                200, "text/html; charset=utf-8", render_session_list(Session.list_all())
+            )
             return
 
         if path.startswith("/api/"):
             sid = path[5:]
             try:
                 ls = Session.load(sid)
-                self._send(200, "application/json",
-                           json.dumps(ls.records, indent=2, ensure_ascii=False))
+                self._send(
+                    200,
+                    "application/json",
+                    json.dumps(ls.records, indent=2, ensure_ascii=False),
+                )
             except FileNotFoundError:
                 self._send(404, "text/plain", b"session not found")
             return
@@ -408,6 +415,7 @@ def serve(port: int = 7070) -> None:
 
 # ── CLI entry point ────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Inspect saved claw session files",
@@ -420,7 +428,9 @@ def main() -> None:
             "  python -m claw_code_python.viewer --serve --port 8080\n"
         ),
     )
-    parser.add_argument("session_id", nargs="?", help="Session ID to inspect (CLI mode)")
+    parser.add_argument(
+        "session_id", nargs="?", help="Session ID to inspect (CLI mode)"
+    )
     parser.add_argument("--serve", action="store_true", help="Start HTTP viewer server")
     parser.add_argument("--port", type=int, default=7070, metavar="N")
     args = parser.parse_args()
@@ -444,7 +454,7 @@ def main() -> None:
 
         for turn in ls.turns:
             seq = turn.get("seq", "?")
-            ts  = turn.get("timestamp", "")[:19].replace("T", " ")
+            ts = turn.get("timestamp", "")[:19].replace("T", " ")
             tin, tout = turn.get("input_tokens", 0), turn.get("output_tokens", 0)
             print(f"── Turn {seq}  {ts}  [{tin} in / {tout} out] ──")
             for msg in turn.get("messages", []):
@@ -458,7 +468,7 @@ def main() -> None:
                         inp_short = json.dumps(block.get("input", {}))[:80]
                         print(f"  [tool_use] {block['name']}  {inp_short}")
                     elif bt == "tool_result":
-                        status  = "ERROR" if block.get("is_error") else "ok"
+                        status = "ERROR" if block.get("is_error") else "ok"
                         content = str(block.get("content", ""))[:100].replace("\n", " ")
                         print(f"  [tool_result] {status}: {content}")
             print()
@@ -472,8 +482,8 @@ def main() -> None:
     print(f"{'SESSION ID':<40}  {'MODEL':<20}  CREATED")
     print("-" * 80)
     for s in sessions:
-        sid     = s.get("session_id", "?")
-        model   = s.get("model", "?")
+        sid = s.get("session_id", "?")
+        model = s.get("model", "?")
         created = s.get("created_at", "")[:19].replace("T", " ")
         print(f"{sid:<40}  {model:<20}  {created}")
 
