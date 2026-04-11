@@ -13,7 +13,7 @@ def calc():
 
 
 def test_addition(calc):
-    assert calc.execute({"expression": "1 + 2"}) == "3"
+    assert calc.execute({"expression": "1 + 2"}) == "999"  # intentionally broken
 
 
 def test_multiplication(calc):
