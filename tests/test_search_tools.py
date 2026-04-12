@@ -185,3 +185,65 @@ def test_grep_pagination(grep, tree):
     assert page["numFiles"] == 1
     assert page["appliedLimit"] == 1
     assert page["filenames"][0] == all_r["filenames"][0]
+
+
+# ---------------------------------------------------------------------------
+# .gitignore support (glob_search)
+# ---------------------------------------------------------------------------
+
+
+def test_glob_respects_gitignore(glob, tmp_path):
+    """Files listed in .gitignore should be excluded by default."""
+    (tmp_path / "keep.py").write_text("# keep\n")
+    (tmp_path / "ignore_me.py").write_text("# ignored\n")
+    (tmp_path / ".gitignore").write_text("ignore_me.py\n")
+    result = json.loads(
+        glob.execute({"pattern": "**/*.py", "root_path": str(tmp_path)})
+    )
+    filenames = result["filenames"]
+    assert any("keep.py" in f for f in filenames)
+    assert not any("ignore_me.py" in f for f in filenames)
+
+
+def test_glob_gitignore_directory(glob, tmp_path):
+    """Directories listed in .gitignore should be excluded recursively."""
+    (tmp_path / "dist").mkdir()
+    (tmp_path / "dist" / "bundle.js").write_text("bundled")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.js").write_text("app")
+    (tmp_path / ".gitignore").write_text("dist/\n")
+    result = json.loads(
+        glob.execute({"pattern": "**/*.js", "root_path": str(tmp_path)})
+    )
+    filenames = result["filenames"]
+    assert any("app.js" in f for f in filenames)
+    assert not any("bundle.js" in f for f in filenames)
+
+
+# ---------------------------------------------------------------------------
+# Hidden directory skipping (glob_search + grep_search)
+# ---------------------------------------------------------------------------
+
+
+def test_glob_skips_hidden_dirs(glob, tmp_path):
+    """Files inside hidden directories (starting with .) should be excluded."""
+    (tmp_path / ".cache").mkdir()
+    (tmp_path / ".cache" / "cached.py").write_text("# cached\n")
+    (tmp_path / "visible.py").write_text("# visible\n")
+    result = json.loads(
+        glob.execute({"pattern": "**/*.py", "root_path": str(tmp_path)})
+    )
+    filenames = result["filenames"]
+    assert any("visible.py" in f for f in filenames)
+    assert not any("cached.py" in f for f in filenames)
+
+
+def test_grep_skips_hidden_dirs(grep, tmp_path):
+    """grep_search should not descend into hidden directories by default."""
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("def hidden(): pass\n")
+    (tmp_path / "main.py").write_text("def visible(): pass\n")
+    result = json.loads(grep.execute({"pattern": "def ", "path": str(tmp_path)}))
+    filenames = result["filenames"]
+    assert any("main.py" in f for f in filenames)
+    assert not any(".git" in f for f in filenames)

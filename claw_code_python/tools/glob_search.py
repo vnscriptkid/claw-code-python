@@ -12,6 +12,7 @@ Key behaviour:
 
 from __future__ import annotations
 
+import fnmatch
 import glob as _glob
 import json
 import time
@@ -21,6 +22,56 @@ from typing import Any
 from .base import Tool
 
 MAX_RESULTS = 100
+
+
+# ---------------------------------------------------------------------------
+# .gitignore helpers
+# ---------------------------------------------------------------------------
+
+
+def _load_gitignore_patterns(base_dir: Path) -> list[str]:
+    """Return the raw (non-comment, non-blank) lines from ``base_dir/.gitignore``."""
+    gitignore = base_dir / ".gitignore"
+    if not gitignore.is_file():
+        return []
+    lines: list[str] = []
+    for line in gitignore.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.rstrip()
+        if line and not line.startswith("#"):
+            lines.append(line)
+    return lines
+
+
+def _is_gitignored(path: Path, base_dir: Path, patterns: list[str]) -> bool:
+    """Return True if *path* should be excluded by any of the .gitignore *patterns*."""
+    try:
+        rel = path.relative_to(base_dir)
+    except ValueError:
+        return False
+
+    rel_str = str(rel)
+    parts = rel.parts
+
+    for pattern in patterns:
+        # Negation is not supported yet; skip negation lines.
+        if pattern.startswith("!"):
+            continue
+
+        if pattern.endswith("/"):
+            # Directory pattern: exclude any file whose ancestor matches.
+            dir_pat = pattern.rstrip("/")
+            if any(fnmatch.fnmatch(part, dir_pat) for part in parts[:-1]):
+                return True
+        elif "/" in pattern:
+            # Relative path pattern: match against the full relative path.
+            if fnmatch.fnmatch(rel_str, pattern):
+                return True
+        else:
+            # Simple name pattern: match against any path component.
+            if any(fnmatch.fnmatch(part, pattern) for part in parts):
+                return True
+
+    return False
 
 
 def _resolve_dir(path_str: str | None) -> Path:
@@ -89,6 +140,15 @@ class GlobSearchTool(Tool):
             p = Path(entry)
             if p.is_file():
                 matches.append(p)
+
+        # Filter out .gitignore-excluded files.
+        gitignore_patterns = _load_gitignore_patterns(base_dir)
+        if gitignore_patterns:
+            matches = [
+                p
+                for p in matches
+                if not _is_gitignored(p, base_dir, gitignore_patterns)
+            ]
 
         # Sort newest-first by modification time.
         def _mtime(p: Path) -> float:

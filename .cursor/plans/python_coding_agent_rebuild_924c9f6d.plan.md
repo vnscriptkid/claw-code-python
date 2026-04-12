@@ -4,19 +4,19 @@ overview: Rebuild the claw-code coding agent from scratch in Python across 10 in
 todos:
   - id: step-1
     content: "Step 1: Minimal LLM Chat Loop -- REPL + Anthropic API client + message types"
-    status: pending
+    status: done
   - id: step-2
     content: "Step 2: Tool Definitions + Agent Loop -- Tool base class, registry, run_turn() loop with calculator demo"
-    status: pending
+    status: done
   - id: step-3
     content: "Step 3: File System Tools -- read_file, write_file, edit_file with path validation"
-    status: pending
+    status: done
   - id: step-4
     content: "Step 4: Shell Execution Tool -- bash with timeout, output capture, truncation"
-    status: pending
+    status: done
   - id: step-5
     content: "Step 5: Search Tools -- glob_search + grep_search (MVP coding agent complete)"
-    status: pending
+    status: done
   - id: step-6
     content: "Step 6: System Prompt + Project Context -- dynamic prompt assembly, CLAUDE.md discovery, git context"
     status: pending

@@ -48,11 +48,16 @@ def _is_binary(path: Path) -> bool:
 
 
 def _collect_files(base: Path) -> list[Path]:
-    """Return all regular files under *base* (or just *base* if it's a file)."""
+    """Return all regular files under *base* (or just *base* if it's a file).
+
+    Hidden directories (names starting with ``.``) are skipped.
+    """
     if base.is_file():
         return [base]
     results: list[Path] = []
-    for root, _dirs, files in os.walk(base):
+    for root, dirs, files in os.walk(base):
+        # Prune hidden directories in-place so os.walk won't descend into them.
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
         for name in files:
             results.append(Path(root) / name)
     return results
